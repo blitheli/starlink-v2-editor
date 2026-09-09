@@ -2,6 +2,10 @@
 
 Guidance for future coding agents working in this repository.
 
+## Pull requests (required)
+
+**PR titles and bodies must be written in Chinese by default** (summaries, change lists, verify steps). Keep code identifiers, file paths, and command snippets in English inside the Chinese prose.
+
 ## UI language (required)
 
 **All user-visible UI copy must be Chinese by default** — panel titles, section headers, field labels, units where natural, hints, warnings, buttons, deploy readout, legend, aria-labels, and page title.
