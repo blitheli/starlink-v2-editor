@@ -140,7 +140,7 @@ export function mountControlPanel(
       '板片总数',
       '片',
       params.wings.panelCount,
-      { id: 'panelCount', min: 2, max: 12, step: 2 },
+      { id: 'panelCount', min: 2, max: 80, step: 2 },
       (v) => applyWings({ panelCount: v }),
     ),
     oddWarn,

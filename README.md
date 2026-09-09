@@ -26,10 +26,10 @@ npm run preview  # preview the production build
 |--------------|---------|------|---------|
 | `panelLength` | 板长 | m | Length of each basic solar panel segment |
 | `panelWidth` | 板宽 | m | Width of each basic solar panel segment |
-| `panelCount` | 板片总数 | 片 | Total panels; split with `floor(n/2)` per side (even preferred; odd remainder dropped) |
+| `panelCount` | 板片总数 | 片 | Total panels; default **8**, UI max **80** (min 2); split with `floor(n/2)` per side (even preferred; odd remainder dropped) |
 | Azimuth | 方位角（偏航） | ° | Wing–bus yaw about bus **+Y** (normal) |
 | Elevation | 俯仰角 | ° | Wing–bus pitch about boom / local **+Z** |
-| Roll | 绕铰链旋转 | ° | Twist about hinge / boom axis (local **±X** after elevation) |
+| Roll | 绕铰链旋转 | ° | Twist about hinge / boom axis (local **+X** after elevation); left & right share the same rotation sign (not mirrored) |
 | Unlock sides | 解锁左右独立调节 | — | Edit left/right joints independently |
 | Deploy scrubber | 展开进度 | % | Live scrub of deploy progress (0–100) |
 | Show axes | 显示坐标轴 | — | Toggle world + bus `AxesHelper` (default on) |

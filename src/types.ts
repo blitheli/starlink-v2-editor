@@ -24,7 +24,7 @@ export interface JointAngles {
   elevationDeg: number;
   /**
    * Roll / twist about the hinge (boom / wing-span axis), degrees.
-   * Applied about local ±X after azimuth + elevation (from bus toward panels).
+   * Applied about local +X after azimuth + elevation; same sign on both sides (not mirrored by side dir).
    */
   rollDeg: number;
 }
@@ -45,7 +45,7 @@ export const DEFAULT_PARAMS: SatelliteParams = {
   wings: {
     panelLength: 1.35,
     panelWidth: 1.55,
-    panelCount: 4,
+    panelCount: 8,
   },
   joints: {
     left: { azimuthDeg: 0, elevationDeg: 0, rollDeg: 0 },

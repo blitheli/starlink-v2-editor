@@ -37,10 +37,10 @@ Parametric **Starlink Satellite V2** 3D editor: a Vite + TypeScript + Three.js S
 | Param | Unit | Notes |
 |-------|------|--------|
 | `panelLength` / `panelWidth` | m | Basic solar panel segment size |
-| `panelCount` | pcs | Total panels; `floor(n/2)` per side (even preferred) |
+| `panelCount` | pcs | Total panels; default **8**, UI max **80** (min 2); `floor(n/2)` per side (even preferred) |
 | `azimuthDeg` | ° | Yaw about bus +Y |
 | `elevationDeg` | ° | Pitch about local +Z after azimuth |
-| `rollDeg` | ° | Twist about hinge / boom (±X after elevation) |
+| `rollDeg` | ° | Twist about hinge / boom (+X after elevation); same sign on left & right (not mirrored) |
 | `unlockSides` | bool | Edit left/right joints independently |
 
 ## Joint DOF order (each wing)
@@ -49,7 +49,7 @@ Scene-graph pivot order (do not reorder casually):
 
 1. **Azimuth** — `azimuthPivot` — rotation about bus **+Y**
 2. **Elevation** — `elevationPivot` — rotation about local **+Z**
-3. **Roll (hinge twist)** — `rollPivot` — rotation about local **±X** (boom from bus to panels)
+3. **Roll (hinge twist)** — `rollPivot` — rotation about local **+X**; left & right use the same sign (linked roll is visually co-rotating, not mirrored)
 
 Deploy accordion folds (about local +Z at each panel hinge) compose **on top of** this 3-DOF base pose.
 

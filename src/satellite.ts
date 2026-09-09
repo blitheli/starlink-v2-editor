@@ -391,8 +391,8 @@ export class Satellite {
     wing.azimuthPivot.rotation.set(0, THREE.MathUtils.degToRad(angles.azimuthDeg) * dir, 0);
     // Elevation: pitch about local +Z after azimuth. Positive raises solar face toward +Y.
     wing.elevationPivot.rotation.set(0, 0, THREE.MathUtils.degToRad(angles.elevationDeg) * dir);
-    // Roll: twist about hinge / boom axis (local ±X). Mirror so +roll twists both wings similarly about boom-from-bus.
-    wing.rollPivot.rotation.set(THREE.MathUtils.degToRad(angles.rollDeg) * dir, 0, 0);
+    // Roll: twist about hinge / boom axis (local +X). Same sign on both sides so linked rollDeg turns both wings the same visual way (not mirrored).
+    wing.rollPivot.rotation.set(THREE.MathUtils.degToRad(angles.rollDeg), 0, 0);
   }
 
   /**
