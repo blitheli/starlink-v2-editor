@@ -13,11 +13,20 @@ export interface WingParams {
   panelCount: number;
 }
 
+/**
+ * Wing–bus joint angles (degrees).
+ * Pivot order in the scene graph: azimuth → elevation → roll (hinge twist).
+ */
 export interface JointAngles {
   /** Azimuth / yaw around bus +Y (up), degrees */
   azimuthDeg: number;
-  /** Elevation / pitch around local wing boom axis (+Z), degrees */
+  /** Elevation / pitch around local +Z (after azimuth), degrees */
   elevationDeg: number;
+  /**
+   * Roll / twist about the hinge (boom / wing-span axis), degrees.
+   * Applied about local +X after azimuth + elevation; same sign on both sides (not mirrored by side dir).
+   */
+  rollDeg: number;
 }
 
 export interface SideJoints {
@@ -36,11 +45,11 @@ export const DEFAULT_PARAMS: SatelliteParams = {
   wings: {
     panelLength: 1.35,
     panelWidth: 1.55,
-    panelCount: 4,
+    panelCount: 8,
   },
   joints: {
-    left: { azimuthDeg: 0, elevationDeg: 0 },
-    right: { azimuthDeg: 0, elevationDeg: 0 },
+    left: { azimuthDeg: 0, elevationDeg: 0, rollDeg: 0 },
+    right: { azimuthDeg: 0, elevationDeg: 0, rollDeg: 0 },
   },
   unlockSides: false,
 };

@@ -15,7 +15,12 @@ const bundle = createScene(canvas);
 const satellite = new Satellite(DEFAULT_PARAMS);
 bundle.scene.add(satellite.group);
 
-const ui = mountControlPanel(panel, satellite, bundle.resetCamera);
+const ui = mountControlPanel(
+  panel,
+  satellite,
+  bundle.resetCamera,
+  bundle.setAxesVisible,
+);
 
 function frame(): void {
   bundle.controls.update();
