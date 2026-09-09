@@ -8,6 +8,9 @@ export interface SceneBundle {
   camera: THREE.PerspectiveCamera;
   controls: OrbitControls;
   pmrem: THREE.PMREMGenerator;
+  axesHelper: THREE.AxesHelper;
+  busAxesHelper: THREE.AxesHelper;
+  setAxesVisible: (visible: boolean) => void;
   dispose: () => void;
   resetCamera: () => void;
 }
@@ -28,13 +31,13 @@ export function createScene(canvas: HTMLCanvasElement): SceneBundle {
   renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  renderer.toneMappingExposure = 1.08;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x07090d);
-  scene.fog = new THREE.FogExp2(0x07090d, 0.035);
+  scene.fog = new THREE.FogExp2(0x07090d, 0.032);
 
   const camera = new THREE.PerspectiveCamera(
     42,
@@ -53,10 +56,10 @@ export function createScene(canvas: HTMLCanvasElement): SceneBundle {
   controls.update();
 
   // Soft space-like lighting
-  const hemi = new THREE.HemisphereLight(0xb8c8e0, 0x1a1510, 0.55);
+  const hemi = new THREE.HemisphereLight(0xb8c8e0, 0x1a1510, 0.5);
   scene.add(hemi);
 
-  const key = new THREE.DirectionalLight(0xfff2e0, 1.35);
+  const key = new THREE.DirectionalLight(0xfff2e0, 1.4);
   key.position.set(6, 10, 4);
   key.castShadow = true;
   key.shadow.mapSize.set(2048, 2048);
@@ -69,18 +72,18 @@ export function createScene(canvas: HTMLCanvasElement): SceneBundle {
   key.shadow.bias = -0.0002;
   scene.add(key);
 
-  const fill = new THREE.DirectionalLight(0x88aadd, 0.35);
+  const fill = new THREE.DirectionalLight(0x88aadd, 0.4);
   fill.position.set(-5, 2, -4);
   scene.add(fill);
 
-  const rim = new THREE.DirectionalLight(0xc0d8ff, 0.25);
+  const rim = new THREE.DirectionalLight(0xc0d8ff, 0.28);
   rim.position.set(0, -3, 6);
   scene.add(rim);
 
-  // Subtle ground plane for shadow catcher
+  // Subtle ground plane for contact shadow
   const ground = new THREE.Mesh(
     new THREE.CircleGeometry(12, 64),
-    new THREE.ShadowMaterial({ opacity: 0.35 }),
+    new THREE.ShadowMaterial({ opacity: 0.38 }),
   );
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = -0.55;
@@ -91,6 +94,21 @@ export function createScene(canvas: HTMLCanvasElement): SceneBundle {
   const grid = new THREE.GridHelper(16, 16, 0x2a3340, 0x151a22);
   grid.position.y = -0.548;
   scene.add(grid);
+
+  // World / bus-frame axes (bus origin coincides with world origin)
+  const axesHelper = new THREE.AxesHelper(2.2);
+  axesHelper.name = 'WorldAxes';
+  scene.add(axesHelper);
+
+  const busAxesHelper = new THREE.AxesHelper(0.55);
+  busAxesHelper.name = 'BusAxes';
+  scene.add(busAxesHelper);
+
+  const setAxesVisible = (visible: boolean): void => {
+    axesHelper.visible = visible;
+    busAxesHelper.visible = visible;
+  };
+  setAxesVisible(true);
 
   const pmrem = new THREE.PMREMGenerator(renderer);
   const envScene = new RoomEnvironment();
@@ -112,7 +130,6 @@ export function createScene(canvas: HTMLCanvasElement): SceneBundle {
     renderer.setSize(w, h, false);
   };
   window.addEventListener('resize', onResize);
-  // Initial sizing after layout
   requestAnimationFrame(onResize);
 
   const dispose = (): void => {
@@ -120,8 +137,23 @@ export function createScene(canvas: HTMLCanvasElement): SceneBundle {
     controls.dispose();
     envMap.dispose();
     pmrem.dispose();
+    axesHelper.geometry.dispose();
+    (axesHelper.material as THREE.Material).dispose();
+    busAxesHelper.geometry.dispose();
+    (busAxesHelper.material as THREE.Material).dispose();
     renderer.dispose();
   };
 
-  return { renderer, scene, camera, controls, pmrem, dispose, resetCamera };
+  return {
+    renderer,
+    scene,
+    camera,
+    controls,
+    pmrem,
+    axesHelper,
+    busAxesHelper,
+    setAxesVisible,
+    dispose,
+    resetCamera,
+  };
 }

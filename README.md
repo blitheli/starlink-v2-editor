@@ -3,6 +3,8 @@
 Parametric **Starlink Satellite V2** 3D editor — Vite + TypeScript + Three.js.  
 参数化 **Starlink V2** 卫星三维编辑器（Vite + TypeScript + Three.js）。
 
+界面文案默认为中文；代码标识符保持英文。详见 `AGENTS.md`。
+
 ## Run locally / 本地运行
 
 ```bash
@@ -20,18 +22,29 @@ npm run preview  # preview the production build
 
 ## Parameters / 参数说明
 
-| Param | Unit | Meaning |
-|-------|------|---------|
-| `panelLength` | m | Length of each basic solar panel segment |
-| `panelWidth` | m | Width of each basic solar panel segment |
-| `panelCount` | pcs | Total panels; split with `floor(n/2)` per side (even preferred; odd remainder dropped) |
-| Azimuth | ° | Wing–bus yaw about bus **+Y** (normal) |
-| Elevation | ° | Wing–bus pitch about boom / local **+Z** |
-| Unlock sides | — | Edit left/right joints independently |
+| Param / 参数 | UI 标签 | Unit | Meaning |
+|--------------|---------|------|---------|
+| `panelLength` | 板长 | m | Length of each basic solar panel segment |
+| `panelWidth` | 板宽 | m | Width of each basic solar panel segment |
+| `panelCount` | 板片总数 | 片 | Total panels; split with `floor(n/2)` per side (even preferred; odd remainder dropped) |
+| Azimuth | 方位角（偏航） | ° | Wing–bus yaw about bus **+Y** (normal) |
+| Elevation | 俯仰角 | ° | Wing–bus pitch about boom / local **+Z** |
+| Roll | 绕铰链旋转 | ° | Twist about hinge / boom axis (local **±X** after elevation) |
+| Unlock sides | 解锁左右独立调节 | — | Edit left/right joints independently |
+| Deploy scrubber | 展开进度 | % | Live scrub of deploy progress (0–100) |
+| Show axes | 显示坐标轴 | — | Toggle world + bus `AxesHelper` (default on) |
 
-Deploy animation folds panel hinges from stowed → open while keeping the 2-DOF joint pose as the base orientation.
+### Joint DOF order / 关节自由度顺序
 
-展开动画在翼根 2-DOF 姿态基础上，将各段铰链从收拢插值到完全展开。
+`azimuth → elevation → roll`（方位角 → 俯仰 → 绕铰链旋转）
+
+Deploy animation folds panel hinges from stowed → open (~8 s full unfold) while keeping the **3-DOF** joint pose as the base orientation. Scrub the timeline to seek live.
+
+展开动画在翼根 **3 自由度** 姿态基础上，将各段铰链从收拢插值到完全展开（完整展开约 8 秒）；可拖动「展开进度」即时预览。
+
+### Axes / 坐标轴
+
+- **+X** 翼桁架 / 翼展 · **+Y** 星体法向 · **+Z** 星体长度
 
 ## Deploy to Vercel / 部署到 Vercel
 

@@ -163,6 +163,11 @@ body {
   cursor: pointer;
 }
 
+.deploy-scrub {
+  margin-top: 0.15rem;
+  height: 1.35rem;
+}
+
 .hint {
   margin: 0;
   font-size: 0.72rem;

@@ -10,10 +10,12 @@ interface PanelSegment {
 }
 
 interface WingAssembly {
-  /** Root attached to bus side; receives azimuth (Y) then elevation (Z) */
+  /** Root attached to bus side */
   root: THREE.Object3D;
+  /** Pivot order: azimuth (Y) → elevation (Z) → roll/hinge-twist (X) */
   azimuthPivot: THREE.Object3D;
   elevationPivot: THREE.Object3D;
+  rollPivot: THREE.Object3D;
   segments: PanelSegment[];
   /** Fold angles (radians) applied during deploy — one per hinge including root fold */
   foldTargets: number[];
@@ -27,11 +29,13 @@ interface WingAssembly {
  *   +Y = bus normal / "up" (antenna faces -Y)
  *   +Z = bus length axis
  *
- * Joint DOF (each side):
- *   Azimuth  — yaw about bus +Y
- *   Elevation — pitch about local +Z (after azimuth)
+ * Joint DOF (each side), applied in this order:
+ *   1. Azimuth  — yaw about bus +Y
+ *   2. Elevation — pitch about local +Z (after azimuth)
+ *   3. Roll      — twist about hinge / boom axis (local ±X after elevation)
  *
- * Deploy folds accordion-style about local +Z at each panel hinge.
+ * Deploy folds accordion-style about local +Z at each panel hinge,
+ * composed on top of the 3-DOF base pose.
  */
 export class Satellite {
   readonly group = new THREE.Group();
@@ -95,44 +99,133 @@ export class Satellite {
   private buildBus(): void {
     const { length: L, width: W, height: H, antennaThickness } = BUS;
 
-    // Thin dark chassis
+    // Core chassis — dark MLI / thermal blanket face
     const body = new THREE.Mesh(
-      new THREE.BoxGeometry(W, H, L),
-      this.mats.bus,
+      new THREE.BoxGeometry(W * 0.98, H * 0.88, L * 0.98),
+      this.mats.busMli,
     );
     body.castShadow = true;
     body.receiveShadow = true;
     body.name = 'BusBody';
     this.busGroup.add(body);
 
-    // Slight bevel lip / radiator edge strip
-    const lip = new THREE.Mesh(
-      new THREE.BoxGeometry(W + 0.02, H * 0.35, L + 0.02),
-      this.mats.solarFrame,
+    // Chamfer / bevel rails along length (±X edges)
+    for (const sx of [-1, 1]) {
+      const rail = new THREE.Mesh(
+        new THREE.BoxGeometry(0.04, H * 1.05, L * 0.995),
+        this.mats.busBevel,
+      );
+      rail.position.set(sx * (W / 2 - 0.015), 0, 0);
+      rail.castShadow = true;
+      this.busGroup.add(rail);
+    }
+
+    // End caps (±Z) with slight step
+    for (const sz of [-1, 1]) {
+      const cap = new THREE.Mesh(
+        new THREE.BoxGeometry(W * 0.92, H * 0.95, 0.05),
+        this.mats.bus,
+      );
+      cap.position.set(0, 0, sz * (L / 2 - 0.02));
+      cap.castShadow = true;
+      this.busGroup.add(cap);
+    }
+
+    // Top deck plate (+Y) — slightly raised structural face
+    const topDeck = new THREE.Mesh(
+      new THREE.BoxGeometry(W * 0.94, 0.012, L * 0.94),
+      this.mats.bus,
     );
-    lip.position.y = -H * 0.28;
+    topDeck.position.y = H * 0.42;
+    topDeck.castShadow = true;
+    topDeck.receiveShadow = true;
+    this.busGroup.add(topDeck);
+
+    // Bottom lip / radiator edge strip
+    const lip = new THREE.Mesh(
+      new THREE.BoxGeometry(W + 0.03, H * 0.28, L + 0.03),
+      this.mats.busBevel,
+    );
+    lip.position.y = -H * 0.38;
     lip.castShadow = true;
     this.busGroup.add(lip);
 
-    // Phased-array antenna on -Y face
+    // Phased-array antenna on -Y face with raised frame
+    const antennaFrame = new THREE.Mesh(
+      new THREE.BoxGeometry(W * 0.98, antennaThickness * 0.55, L * 0.96),
+      this.mats.antennaFrame,
+    );
+    antennaFrame.position.y = -(H / 2 + antennaThickness * 0.2);
+    antennaFrame.castShadow = true;
+    this.busGroup.add(antennaFrame);
+
     const antenna = new THREE.Mesh(
-      new THREE.BoxGeometry(W * 0.96, antennaThickness, L * 0.94),
+      new THREE.BoxGeometry(W * 0.94, antennaThickness, L * 0.92),
       this.mats.antenna,
     );
-    antenna.position.y = -(H / 2 + antennaThickness / 2);
+    antenna.position.y = -(H / 2 + antennaThickness * 0.75);
     antenna.receiveShadow = true;
+    antenna.castShadow = true;
     antenna.name = 'AntennaFace';
     this.busGroup.add(antenna);
 
-    // Small bus details: thruster pods at Z ends
+    // Thruster pods at Z ends
     for (const sign of [-1, 1]) {
       const pod = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.06, 0.07, 0.12, 12),
+        new THREE.CylinderGeometry(0.055, 0.065, 0.11, 14),
         this.mats.yoke,
       );
       pod.rotation.z = Math.PI / 2;
-      pod.position.set(0, 0, sign * (L / 2 + 0.04));
+      pod.position.set(0, -0.01, sign * (L / 2 + 0.045));
+      pod.castShadow = true;
       this.busGroup.add(pod);
+
+      // Nozzle tip
+      const nozzle = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.028, 0.045, 0.04, 12),
+        this.mats.detail,
+      );
+      nozzle.rotation.z = Math.PI / 2;
+      nozzle.position.set(0, -0.01, sign * (L / 2 + 0.1));
+      this.busGroup.add(nozzle);
+    }
+
+    // Small laser-comm / star-tracker bump on +Y deck
+    const laserBase = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.07, 0.08, 0.025, 16),
+      this.mats.detail,
+    );
+    laserBase.position.set(0.35, H * 0.42 + 0.018, 0.55);
+    this.busGroup.add(laserBase);
+
+    const laserDome = new THREE.Mesh(
+      new THREE.SphereGeometry(0.045, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2),
+      this.mats.busBevel,
+    );
+    laserDome.position.set(0.35, H * 0.42 + 0.03, 0.55);
+    this.busGroup.add(laserDome);
+
+    // Pair of small patch antennas near opposite corner
+    for (const [ax, az] of [
+      [-0.45, -0.7],
+      [-0.45, -0.9],
+    ] as const) {
+      const patch = new THREE.Mesh(
+        new THREE.BoxGeometry(0.08, 0.015, 0.08),
+        this.mats.antennaFrame,
+      );
+      patch.position.set(ax, H * 0.42 + 0.01, az);
+      this.busGroup.add(patch);
+    }
+
+    // Side harness / cable run stubs near yoke attach points
+    for (const sx of [-1, 1]) {
+      const harness = new THREE.Mesh(
+        new THREE.BoxGeometry(0.06, 0.04, 0.22),
+        this.mats.detail,
+      );
+      harness.position.set(sx * (W / 2 - 0.02), 0.02, 0);
+      this.busGroup.add(harness);
     }
 
     this.group.add(this.busGroup);
@@ -167,29 +260,44 @@ export class Satellite {
     root.name = `WingRoot_${side}`;
     root.position.set(dir * halfBusW, 0, 0);
 
+    // 1) Azimuth — yaw about bus +Y
     const azimuthPivot = new THREE.Object3D();
     azimuthPivot.name = `Azimuth_${side}`;
     root.add(azimuthPivot);
 
+    // 2) Elevation — pitch about local +Z
     const elevationPivot = new THREE.Object3D();
     elevationPivot.name = `Elevation_${side}`;
     azimuthPivot.add(elevationPivot);
 
+    // 3) Roll — twist about hinge / boom axis (local ±X)
+    const rollPivot = new THREE.Object3D();
+    rollPivot.name = `Roll_${side}`;
+    elevationPivot.add(rollPivot);
+
     // Short yoke / boom from bus edge to first panel hinge
     const yokeLen = BUS.yokeLength;
     const yoke = new THREE.Mesh(
-      new THREE.CylinderGeometry(BUS.yokeRadius, BUS.yokeRadius * 0.9, yokeLen, 10),
+      new THREE.CylinderGeometry(BUS.yokeRadius, BUS.yokeRadius * 0.9, yokeLen, 12),
       this.mats.yoke,
     );
     yoke.rotation.z = Math.PI / 2;
     yoke.position.set(dir * (yokeLen / 2), 0, 0);
     yoke.castShadow = true;
-    elevationPivot.add(yoke);
+    rollPivot.add(yoke);
+
+    // Yoke end fitting
+    const fitting = new THREE.Mesh(
+      new THREE.BoxGeometry(0.05, 0.06, 0.08),
+      this.mats.detail,
+    );
+    fitting.position.set(dir * yokeLen, 0, 0);
+    rollPivot.add(fitting);
 
     // Chain of panel segments with fold hinges
     const chainAnchor = new THREE.Object3D();
     chainAnchor.position.set(dir * yokeLen, 0, 0);
-    elevationPivot.add(chainAnchor);
+    rollPivot.add(chainAnchor);
 
     const segments: PanelSegment[] = [];
     let parent: THREE.Object3D = chainAnchor;
@@ -197,7 +305,6 @@ export class Satellite {
     for (let i = 0; i < n; i++) {
       const hinge = new THREE.Object3D();
       hinge.name = `FoldHinge_${side}_${i}`;
-      // First hinge at yoke tip; subsequent at outer edge of previous panel
       if (i === 0) {
         hinge.position.set(0, 0, 0);
       } else {
@@ -206,7 +313,6 @@ export class Satellite {
       parent.add(hinge);
 
       const panel = this.createPanelMesh(panelLength, panelWidth, side, i);
-      // Panel extends outward from hinge along ±X
       panel.position.set(dir * (panelLength / 2), 0, 0);
       hinge.add(panel);
 
@@ -218,6 +324,7 @@ export class Satellite {
       root,
       azimuthPivot,
       elevationPivot,
+      rollPivot,
       segments,
       foldTargets: new Array(n).fill(0),
     };
@@ -229,26 +336,38 @@ export class Satellite {
     side: WingSide,
     index: number,
   ): THREE.Mesh {
-    const thickness = 0.028;
-    const geom = new THREE.BoxGeometry(length * 0.98, thickness, width * 0.98);
+    const thickness = 0.032;
+    const geom = new THREE.BoxGeometry(length * 0.97, thickness, width * 0.96);
     const mesh = new THREE.Mesh(geom, this.mats.solar);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     mesh.name = `SolarPanel_${side}_${index}`;
 
-    // Thin frame rim as child
+    // Structural frame rim
     const frame = new THREE.Mesh(
-      new THREE.BoxGeometry(length, thickness * 1.15, width),
+      new THREE.BoxGeometry(length, thickness * 1.25, width),
       this.mats.solarFrame,
     );
-    frame.scale.set(1.01, 0.7, 1.01);
-    frame.position.y = -thickness * 0.15;
+    frame.scale.set(1.012, 0.65, 1.012);
+    frame.position.y = -thickness * 0.2;
     mesh.add(frame);
 
-    // Slight UV repeat based on aspect
-    const mat = this.mats.solar;
-    if (mat.map) {
-      // Shared texture — per-mesh clone would be heavy; leave as-is
+    // Thin coverglass slab for clearcoat specular
+    const glass = new THREE.Mesh(
+      new THREE.BoxGeometry(length * 0.965, thickness * 0.15, width * 0.955),
+      this.mats.solarGlass,
+    );
+    glass.position.y = thickness * 0.42;
+    mesh.add(glass);
+
+    // Edge rails along length (±Z of panel)
+    for (const sz of [-1, 1]) {
+      const rail = new THREE.Mesh(
+        new THREE.BoxGeometry(length * 0.99, thickness * 1.1, 0.018),
+        this.mats.solarFrame,
+      );
+      rail.position.set(0, 0, sz * (width * 0.48));
+      mesh.add(rail);
     }
 
     return mesh;
@@ -272,12 +391,15 @@ export class Satellite {
     wing.azimuthPivot.rotation.set(0, THREE.MathUtils.degToRad(angles.azimuthDeg) * dir, 0);
     // Elevation: pitch about local +Z after azimuth. Positive raises solar face toward +Y.
     wing.elevationPivot.rotation.set(0, 0, THREE.MathUtils.degToRad(angles.elevationDeg) * dir);
+    // Roll: twist about hinge / boom axis (local ±X). Mirror so +roll twists both wings similarly about boom-from-bus.
+    wing.rollPivot.rotation.set(THREE.MathUtils.degToRad(angles.rollDeg) * dir, 0, 0);
   }
 
   /**
    * Accordion deploy: each hinge folds about local Z.
    * Stowed (t=0): panels stacked against bus (≈180° folds alternating).
    * Deployed (t=1): all folds = 0 (flat wing).
+   * Composed on top of the 3-DOF azimuth → elevation → roll base pose.
    */
   private applyDeploy(t: number): void {
     this.applyWingDeploy(this.leftWing, -1, t);
@@ -290,11 +412,9 @@ export class Satellite {
     const eased = t * t * (3 - 2 * t); // smoothstep
 
     for (let i = 0; i < n; i++) {
-      // Root fold starts more closed; outer panels trail slightly for a nicer cascade
       const stagger = n > 1 ? i / (n - 1) : 0;
       const localT = THREE.MathUtils.clamp((eased - stagger * 0.25) / (1 - stagger * 0.25 || 1), 0, 1);
-      const stowAngle = Math.PI * 0.98; // nearly 180° fold
-      // Alternate fold direction for accordion stack
+      const stowAngle = Math.PI * 0.98;
       const sign = i % 2 === 0 ? 1 : -1;
       const angle = (1 - localT) * stowAngle * sign;
       wing.segments[i].hinge.rotation.set(0, 0, angle * dir);
