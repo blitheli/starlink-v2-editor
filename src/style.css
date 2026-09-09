@@ -201,6 +201,10 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+.joint-block[hidden] {
+  display: none !important;
+}
+
 .joint-side {
   margin: 0;
   font-size: 0.78rem;
